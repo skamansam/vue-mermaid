@@ -4,58 +4,74 @@
 
 <script>
 import mermaid from "mermaid";
+
+const defaultConfig = { theme: "default", startOnLoad: false, securityLevel: "loose" };
+const edgeStyles = [
+  { type: "default", open: "[", close: "]" },
+  { type: "round", open: "(", close: ")" },
+  { type: "stadium", open: "([", close: "])" },
+  { type: "subroutine", open: "[[", close: "]]" },
+  { type: "cylindrical", open: "[(", close: ")]" },
+  { type: "circle", open: "((", close: "))" },
+  { type: "asymetric", open: ">", close: "]" },
+  { type: "rhombus", open: "{", close: "}" },
+  { type: "hexagon", open: "{{", close: "}}" },
+  { type: "parallelogram", open: "[/", close: "/]" },
+  { type: "parallelogram_alt", open: "[\\", close: "\\]" },
+  { type: "trapezoid", open: "[/", close: "\\]" },
+  { type: "trapezoid_alt", open: "[\\", close: "/]" },
+];
+
 export default {
   name: "VueMermaid",
   props: {
     type: {
       type: String,
-      default: "graph TD"
+      default: "graph TD",
+      description: "The type of mermaid graph to generate. Usually the first line in the mermaid text.",
+      validator: function (value) {
+        const regex = /^(flowchart|graph) (TB|TD|BT|RL|LR)$|^stateDiagram-v2$|^sequenceDiagram$|^classDiagram$|^erDiagram$|^journey$|^gantt$|^pie(\s+title( +\w+)+)?$|^requirementDiagram$/
+        return regex.test(value);
+      },
     },
     nodes: {
       type: Array,
-      required: true
+      required: true,
+      description: "Array of node descriptors. Must contain `id`, and `link` fields. May contain `edgeType`, `next`, or `group` fields.",
+      validator: function (nodes) {
+        return nodes.find((node) => {
+          if (typeof(node.id) === 'undefined' || node.id < 0) return `Node/Link cannot be created (id must be greater than 0):  ${node}`;
+          if (typeof(node.link) === 'undefined' || node.link === '') return `Node/Link cannot be created (link must be specified):  ${node}`;
+          if (typeof(node.group) !== 'undefined' && node.group === '') return `Node/Link cannot be created (group is given but blank): ${node}`;
+          if (typeof(node.edgeType) !== 'undefined' && node.edgeType === '') return `Node/Link cannot be created (edgeType is blank):  ${node}`;
+          if (typeof(node.next) !== 'undefined' && node.next === '') return `Node/Link cannot be created (next is blank):  ${node}`;
+        );
+      },
+    },
+    text: {
+      type: String,
+      required: false,
+      description: "The entire text of the graph, in mermaid format. Overrides `nodes` prop.",
     },
     styles: {
       type: Array,
       default() {
         return [];
       }
+      description: "",
     },
     config: {
       type: Object,
       default() {
-        return {};
+        return defaultConfig;
       }
-    },
-    defaultConfig: {
-      type: Object,
-      default() {
-        return { theme: "default", startOnLoad: false, securityLevel: "loose" };
-      }
+      description: "",
     },
     stopOnError: {
       type: Boolean,
-      default: false
+      default: false,
+      description: "",
     }
-  },
-  data: function() {
-    return {
-      edges: [
-        { type: "default", open: "[", close: "]" },
-        { type: "round", open: "(", close: ")" },
-        { type: "stadium", open: "([", close: "])" },
-        { type: "subroutine", open: "[[", close: "]]" },
-        { type: "cylindrical", open: "[(", close: ")]" },
-        { type: "circle", open: "((", close: "))" },
-        { type: "asymetric", open: ">", close: "]" },
-        { type: "rhombus", open: "{", close: "}" },
-        { type: "hexagon", open: "{{", close: "}}" },
-        { type: "parallelogram", open: "[/", close: "/]" },
-        { type: "parallelogram_alt", open: "[\\", close: "\\]" },
-        { type: "trapezoid", open: "[/", close: "\\]" },
-        { type: "trapezoid_alt", open: "[\\", close: "/]" },
-      ]
-    };
   },
   mounted() {
     this.init();
@@ -200,10 +216,10 @@ export default {
     },
     buildNode(item) {
       let edge = !item.edgeType
-        ? this.edges.find(e => {
+        ? edgeStyles.find(e => {
             return e.type === "default";
           })
-        : this.edges.find(e => {
+        : edgeStyles.find(e => {
             return e.type === item.edgeType;
           });
       return `${item.id}${edge.open}${item.text}${edge.close}`;
@@ -228,7 +244,7 @@ export default {
       window.mermaidClick = function(id) {
         _t.edit(id);
       };
-      mermaid.initialize(Object.assign(this.defaultConfig, this.config));
+      mermaid.initialize(Object.assign(defaultConfig, this.config));
     },
     load(code) {
       if (code) {

@@ -118,7 +118,7 @@ export default {
           group: "two"
         },
         { id: "5", text: "E", group: "three" },
-        { id: "6", text: "F", group: "three", , url: "http://www.github.com" }
+        { id: "6", text: "F", group: "three", url: "http://www.github.com" }
       ]
     };
   }
